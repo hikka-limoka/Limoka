@@ -6,10 +6,10 @@ on:
     - cron: '0 0 * * *' # Runs daily at midnight UTC
   push:
     branches:
-      - main
+      - master
   pull_request:
     branches:
-      - main
+      - master
     types: [opened, synchronize, reopened, closed]
   workflow_dispatch: # Allows manual triggering from GitHub UI
 
@@ -40,15 +40,15 @@ jobs:
           python-version: '3.9'
       - name: Install Python dependencies
         run: pip install requests
-      - name: Sync main branch and create new branch
+      - name: Sync master branch and create new branch
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           git fetch origin
-          git checkout main
+          git checkout master
           git remote set-url origin "https://x-access-token:${GITHUB_TOKEN}@${REPO_URL}"
-          echo "Synchronizing main with origin/main..."
-          git reset --hard origin/main
+          echo "Synchronizing master with origin/master..."
+          git reset --hard origin/master
           echo "Deleting remote branch ${BRANCH_NAME}..."
           git push origin --delete ${BRANCH_NAME} || echo "Branch ${BRANCH_NAME} did not exist or could not be deleted"
           echo "Deleting local branch ${BRANCH_NAME}..."
@@ -100,7 +100,7 @@ jobs:
     if: |
       github.event_name == 'schedule' ||
       github.event_name == 'workflow_dispatch' ||
-      (github.event_name == 'push' && github.ref == 'refs/heads/main') ||
+      (github.event_name == 'push' && github.ref == 'refs/heads/master') ||
       (github.event_name == 'pull_request' && github.event.action == 'closed' && github.event.pull_request.merged == true)
     needs: update
     steps:
@@ -110,7 +110,7 @@ jobs:
           if [[ "${{ github.event_name }}" == "schedule" || "${{ github.event_name }}" == "workflow_dispatch" ]]; then
             echo "ref=${{ env.BRANCH_NAME }}" >> $GITHUB_OUTPUT
           else
-            echo "ref=main" >> $GITHUB_OUTPUT
+            echo "ref=master" >> $GITHUB_OUTPUT
           fi
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -200,16 +200,16 @@ jobs:
           if git ls-remote --exit-code --heads origin ${{ env.BRANCH_NAME }} >/dev/null 2>&1; then
             echo "Branch ${{ env.BRANCH_NAME }} exists in remote repository."
             git log origin/${{ env.BRANCH_NAME }} -1 || echo "Failed to view log for ${{ env.BRANCH_NAME }}"
-            git diff origin/main origin/${{ env.BRANCH_NAME }} || echo "No diff between main and ${{ env.BRANCH_NAME }}"
+            git diff origin/master origin/${{ env.BRANCH_NAME }} || echo "No diff between master and ${{ env.BRANCH_NAME }}"
             echo "Creating Pull Request..."
-            gh pr create --base main --head ${{ env.BRANCH_NAME }} --title "Update of repositories $(date +'%Y-%m-%d %H:%M:%S')" --body "Automated PR for repository updates" || echo "Failed to create PR"
+            gh pr create --base master --head ${{ env.BRANCH_NAME }} --title "Update of repositories $(date +'%Y-%m-%d %H:%M:%S')" --body "Automated PR for repository updates" || echo "Failed to create PR"
           else
             echo "Branch ${{ env.BRANCH_NAME }} does not exist in remote repository, skipping PR creation."
           fi
 
   notify_diffs:
     runs-on: ubuntu-latest
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    if: github.event_name == 'push' && github.ref == 'refs/heads/master'
     needs: parse
     steps:
       - name: Checkout repository
@@ -239,7 +239,7 @@ jobs:
 
   backup:
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch'
+    if: github.ref == 'refs/heads/master' || github.event_name == 'workflow_dispatch'
     needs: parse
     steps:
       - name: Checkout repository
