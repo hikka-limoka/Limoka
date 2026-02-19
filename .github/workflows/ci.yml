@@ -1,5 +1,10 @@
 name: CI Pipeline
 
+permissions:
+  contents: write
+  pull-requests: write
+
+
 # Triggers for the workflow
 on:
   schedule:
