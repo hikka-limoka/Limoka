@@ -17,7 +17,7 @@ on:
 # Environment variables available to all jobs
 env:
   BRANCH_NAME: "update-submodules_${{ github.sha }}"
-  REPO_URL: "github.com/hikka-limoka/Limoka.git" # Repository URL
+  REPO_URL: "github.com/hikka-limoka/Limoka" # Repository URL
   GIT_DEPTH: 0 # Fetch full history for Git operations
 
 jobs:
