@@ -22,7 +22,7 @@ on:
 # Environment variables available to all jobs
 env:
   BRANCH_NAME: "update-submodules_${{ github.sha }}"
-  REPO_URL: "github.com/hikka-limoka/Limoka" # Repository URL
+  REPO_URL: "github.com/hikka-limoka/Limoka.git" # Repository URL
   GIT_DEPTH: 0 # Fetch full history for Git operations
 
 jobs:
@@ -30,6 +30,12 @@ jobs:
     runs-on: ubuntu-latest
     if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
     steps:
+      - name: Generate GitHub App token
+        id: app-token
+        uses: tibdex/github-app-token@v2
+        with:
+          app_id: ${{ secrets.APP_ID }}
+          private_key: ${{ secrets.APP_PRIVATE_KEY }}
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
@@ -47,7 +53,7 @@ jobs:
         run: pip install requests
       - name: Sync master branch and create new branch
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ steps.app-token.outputs.token }}
         run: |
           git fetch origin
           git checkout master
@@ -91,7 +97,7 @@ jobs:
           git diff --stat
       - name: Clone and update repositories
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ steps.app-token.outputs.token }}
         run: |
           echo "Cloning and updating repositories..."
           python3 clone_repos.py || echo "Error running clone_repos.py, continuing with commit and push"
@@ -135,7 +141,7 @@ jobs:
           python-version: '3.9'
       - name: Run parse scripts
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ steps.app-token.outputs.token }}
         run: |
           echo "Running parse after update..."
           git fetch origin
@@ -174,7 +180,7 @@ jobs:
           git diff --stat
       - name: Final commit
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ steps.app-token.outputs.token }}
         run: |
           git checkout ${{ env.BRANCH_NAME }}
           git add . || echo "No changes"
@@ -198,7 +204,7 @@ jobs:
           git config --global --list
       - name: Create Pull Request
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ steps.app-token.outputs.token }}
         run: |
           echo "Checking branch status before PR..."
           git fetch origin
