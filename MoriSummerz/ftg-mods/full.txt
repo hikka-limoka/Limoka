@@ -1,0 +1,8 @@
+osu
+magictext
+qr
+top20
+lyrics
+picsaver
+weather
+chatgpt

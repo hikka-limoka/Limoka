@@ -1,0 +1,6 @@
+information
+notes
+purge
+quotes
+terminal
+translate
