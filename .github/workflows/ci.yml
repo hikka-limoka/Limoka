@@ -36,14 +36,6 @@ jobs:
         with:
           app-id: ${{ secrets.APP_ID }}
           private-key: ${{ secrets.APP_PRIVATE_KEY }}
-      - name: Debug token & gh whoami
-        env:
-          GH_TOKEN: ${{ steps.app-token.outputs.token }}
-        run: |
-          echo "Token length: ${#GH_TOKEN}"
-          gh auth status || echo "gh auth failed"
-          gh api user || echo "Cannot access /user"
-          gh repo view || echo "Cannot view current repo"
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
@@ -214,17 +206,12 @@ jobs:
         env:
           GH_TOKEN: ${{ steps.app-token.outputs.token }}
         run: |
-          echo "Checking branch status before PR..."
-          git fetch origin
-          if git ls-remote --exit-code --heads origin ${{ env.BRANCH_NAME }} >/dev/null 2>&1; then
-            echo "Branch ${{ env.BRANCH_NAME }} exists in remote repository."
-            git log origin/${{ env.BRANCH_NAME }} -1 || echo "Failed to view log for ${{ env.BRANCH_NAME }}"
-            git diff origin/master origin/${{ env.BRANCH_NAME }} || echo "No diff between master and ${{ env.BRANCH_NAME }}"
-            echo "Creating Pull Request..."
-            gh pr create --base master --head ${{ env.BRANCH_NAME }} --title "Update of repositories $(date +'%Y-%m-%d %H:%M:%S')" --body "Automated PR for repository updates"
-          else
-            echo "Branch ${{ env.BRANCH_NAME }} does not exist in remote repository, skipping PR creation."
-          fi
+          gh pr create \
+            --repo ${{ github.repository }} \
+            --base master \
+            --head ${{ env.BRANCH_NAME }} \
+            --title "Update of repositories $(date +'%Y-%m-%d %H:%M:%S')" \
+            --body "Automated PR for repository updates"
 
   notify_diffs:
     runs-on: ubuntu-latest
