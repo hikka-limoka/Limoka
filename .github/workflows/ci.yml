@@ -213,7 +213,7 @@ jobs:
             git log origin/${{ env.BRANCH_NAME }} -1 || echo "Failed to view log for ${{ env.BRANCH_NAME }}"
             git diff origin/master origin/${{ env.BRANCH_NAME }} || echo "No diff between master and ${{ env.BRANCH_NAME }}"
             echo "Creating Pull Request..."
-            gh pr create --base master --head ${{ env.BRANCH_NAME }} --title "Update of repositories $(date +'%Y-%m-%d %H:%M:%S')" --body "Automated PR for repository updates" || echo "Failed to create PR"
+            gh pr create --base master --head ${{ env.BRANCH_NAME }} --title "Update of repositories $(date +'%Y-%m-%d %H:%M:%S')" --body "Automated PR for repository updates"
           else
             echo "Branch ${{ env.BRANCH_NAME }} does not exist in remote repository, skipping PR creation."
           fi
