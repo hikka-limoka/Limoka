@@ -36,6 +36,14 @@ jobs:
         with:
           app-id: ${{ secrets.APP_ID }}
           private-key: ${{ secrets.APP_PRIVATE_KEY }}
+      - name: Debug token & gh whoami
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+        run: |
+          echo "Token length: ${#GH_TOKEN}"
+          gh auth status || echo "gh auth failed"
+          gh api user || echo "Cannot access /user"
+          gh repo view || echo "Cannot view current repo"
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
