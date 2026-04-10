@@ -867,9 +867,6 @@ class Limoka(loader.Module):
             filters = session["filters"]
 
             lang = self.user_lang
-            logger.info(
-                f"Displaying module: {module_path} for query: {query} with filters: {filters} in language: {lang}"
-            )
             module_banner_raw = module_info.get("meta", {}).get("banner")
             photo = await self._validate_url(module_banner_raw)
 
