@@ -247,8 +247,13 @@
         },
         {
             "url": "https://github.com/Midga3/Heroku-modules",
-            "tags": [],
+            "tags": ["newbie"],
             "blacklist": ["deletelinux.py", "bleabratanspapibobolshoyevyrychil.py"]
+        },
+        {
+            "url": "https://github.com/archquise/q.mods",
+            "tags": ["herokutrusted"],
+            "blacklist": []
         }
     ]
 }
