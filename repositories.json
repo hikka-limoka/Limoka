@@ -239,6 +239,16 @@
             "url": "https://github.com/radiocycle/Modules",
             "tags": ["newbie"],
             "blacklist": []
+        },
+        {
+            "url": "https://github.com/Fixyres/FModules",
+            "tags": ["hikkatrusted", "herokutrusted"],
+            "blacklist": ["FHeta.py"]
+        },
+        {
+            "url": "https://github.com/Midga3/Heroku-modules",
+            "tags": ["herokutrusted"],
+            "blacklist": ["deletelinux.py", "bleabratanspapibobolshoyevyrychil.py"]
         }
     ]
 }
