@@ -213,7 +213,7 @@
         {
             "url": "https://github.com/fiksofficial/python-modules",
             "tags": ["herokutrusted"],
-            "blacklist": []
+            "blacklist": ["PyInstall.py"]
         },
         {
             "url": "https://github.com/mead0wsss/mead0wsMods",
