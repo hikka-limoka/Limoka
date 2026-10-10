@@ -23,3 +23,9 @@ point
 deviceinfo
 mpi
 aigenuser
+github
+stream
+placeholders+
+PyInstall
+IwaAnimation
+lateban
