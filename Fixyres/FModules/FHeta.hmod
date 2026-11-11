@@ -1,0 +1,1029 @@
+HOTARU = {
+    "id": "fheta",
+    "version": "9.4.1",
+    "commands": ["fheta"],
+    "inline_commands": ["fheta"],
+    "watchers": ["install"],
+    "capabilities": ["net", "state", "mt", "modules"],
+    "tasks": {
+        "sync": {
+            "interval": 60,
+            "autostart": True,
+        },
+    },
+    "rise": "rise",
+    "banner": "https://raw.githubusercontent.com/Fixyres/FModules/refs/heads/main/assets/FHeta/logo.png",
+    "config_schema": {
+        "only_official_developers": {
+            "type": "bool",
+            "default": False,
+            "description": "Use only modules from official developers when searching?",
+            "category": "Search",
+        },
+        "install_via_fheta": {
+            "type": "bool",
+            "default": True,
+            "description": "Enable Install via FHeta?",
+            "category": "Install",
+        },
+        "theme": {
+            "type": "select",
+            "options": ["default", "winter", "summer", "spring", "autumn"],
+            "default": "default",
+            "description": "Theme for emojis.",
+            "category": "Appearance",
+        },
+    },
+    "lexicon": {
+        "en": {
+            "name": "FHeta",
+            "description": "Module for searching modules! Watch all FHeta news in @NFHeta_Updates!",
+            "commands": {
+                "fheta": {"description": "(query) - search modules."},
+            },
+            "inline_commands": {
+                "fheta": {"title": "FHeta", "description": "(query) - search modules."},
+            },
+        },
+        "ru": {
+            "name": "FHeta",
+            "description": "Модуль для поиска модулей! Следите за всеми новостями FHeta в @NFHeta_Updates!",
+            "commands": {
+                "fheta": {"description": "(запрос) - поиск модулей."},
+            },
+            "inline_commands": {
+                "fheta": {"title": "FHeta", "description": "(запрос) - поиск модулей."},
+            },
+        },
+        "uk": {
+            "name": "FHeta",
+            "description": "Модуль для пошуку модулів! Слідкуйте за всіма новинами FHeta в @NFHeta_Updates!",
+            "commands": {
+                "fheta": {"description": "(запит) - пошук модулів."},
+            },
+            "inline_commands": {
+                "fheta": {"title": "FHeta", "description": "(запит) - пошук модулів."},
+            },
+        },
+        "kz": {
+            "name": "FHeta",
+            "description": "Модульдерді іздеу модулі! FHeta барлық жаңалықтарын @NFHeta_Updates арнасында қадағалаңыз!",
+            "commands": {
+                "fheta": {"description": "(сұрау) - модульдерді іздеу."},
+            },
+            "inline_commands": {
+                "fheta": {"title": "FHeta", "description": "(сұрау) - модульдерді іздеу."},
+            },
+        },
+        "ja": {
+            "name": "FHeta",
+            "description": "モジュール検索用モジュール！@NFHeta_UpdatesでFHetaのすべてのニュースをフォローしてください！",
+            "commands": {
+                "fheta": {"description": "(クエリ) - モジュールを検索します。"},
+            },
+            "inline_commands": {
+                "fheta": {"title": "FHeta", "description": "(クエリ) - モジュールを検索します。"},
+            },
+        },
+    },
+}
+
+import ast
+import asyncio
+import base64
+import html
+import json
+import random
+import re
+import time
+import uuid
+from urllib.parse import quote, unquote, urlparse
+
+API = "https://api.fixyres.com"
+MODULE_URL = "https://api.fixyres.com/module/"
+BOT_ID = 7575472403
+BOT_USERNAME = "FHeta_robot"
+ASSETS = "https://raw.githubusercontent.com/Fixyres/FModules/refs/heads/main/assets/FHeta/"
+PART_SIZE = 512 * 1024
+
+DEFAULTS = {
+    "only_official_developers": False,
+    "install_via_fheta": True,
+    "theme": "default",
+}
+
+LANGUAGES = {"uk": "ua", "ja": "jp", "kk": "kz"}
+
+STRINGS = {
+    "en": {
+        "lang": "en",
+        "author": "by",
+        "description": "Description",
+        "commands": "Commands",
+        "placeholders": "Placeholders",
+        "capabilities": "Permissions",
+        "morecommands": "...and {remaining} more commands.",
+        "moreplaceholders": "...and {remaining} more placeholders.",
+        "list": "All found modules:",
+        "search": "Searching for {query}...",
+        "noquery": "You didn't enter a search query, example: {prefix}fheta your query",
+        "notfound": "Nothing found for query {query}.",
+        "toolong": "Your query is too big, please try reducing it to 168 characters.",
+        "added": "✔ Rating submitted!",
+        "changed": "✔ Rating has been changed!",
+        "deleted": "✔ Rating deleted!",
+        "prompt": "Enter a query to search.",
+        "hint": "Name, command, description, author.",
+        "retry": "Try another query.",
+        "query": "Query",
+        "install": "Install",
+        "counter": "{idx}/{total}",
+        "code": "Code",
+        "success": "✔ Module successfully installed!",
+        "error": "✘ Error, perhaps the module is broken!",
+        "overwrite": "✘ Error, module tried to overwrite built-in module!",
+        "dependency": "✘ Dependencies installation error!",
+        "confirm": "✔ Module sent to Saved Messages, confirm its permissions there with {prefix}ld!",
+        "confirm_file": "Module {name} needs your approval for its permissions: {caps}.\nReply to this file with {prefix}ld to review and install it.",
+    },
+    "ru": {
+        "lang": "ru",
+        "author": "от",
+        "description": "Описание",
+        "commands": "Команды",
+        "placeholders": "Плейсхолдеры",
+        "capabilities": "Разрешения",
+        "morecommands": "...и еще {remaining} команд.",
+        "moreplaceholders": "...и еще {remaining} плейсхолдеров.",
+        "list": "Все найденные модули:",
+        "search": "Поиск по запросу {query}...",
+        "noquery": "Вы не ввели запрос для поиска, пример: {prefix}fheta ваш запрос",
+        "notfound": "Ничего не найдено по запросу {query}.",
+        "toolong": "Ваш запрос слишком большой, пожалуйста, сократите его до 168 символов.",
+        "added": "✔ Оценка добавлена!",
+        "changed": "✔ Оценка изменена!",
+        "deleted": "✔ Оценка удалена!",
+        "prompt": "Введите запрос для поиска.",
+        "hint": "Название, команда, описание, автор.",
+        "retry": "Попробуйте другой запрос.",
+        "query": "Запрос",
+        "install": "Установить",
+        "counter": "{idx}/{total}",
+        "code": "Код",
+        "success": "✔ Модуль успешно установлен!",
+        "error": "✘ Ошибка, возможно, модуль сломан!",
+        "overwrite": "✘ Ошибка, модуль пытался перезаписать встроенный модуль!",
+        "dependency": "✘ Ошибка установки зависимостей!",
+        "confirm": "✔ Модуль отправлен в Избранное, подтвердите там его разрешения через {prefix}ld!",
+        "confirm_file": "Модулю {name} нужно ваше подтверждение разрешений: {caps}.\nОтветьте на этот файл командой {prefix}ld, чтобы проверить и установить его.",
+    },
+    "ua": {
+        "lang": "ua",
+        "author": "від",
+        "description": "Опис",
+        "commands": "Команди",
+        "placeholders": "Плейсхолдери",
+        "capabilities": "Дозволи",
+        "morecommands": "...і ще {remaining} команд.",
+        "moreplaceholders": "...і ще {remaining} плейсхолдерів.",
+        "list": "Всі знайдені модулі:",
+        "search": "Пошук за запитом {query}...",
+        "noquery": "Ви не ввели запит для пошуку, приклад: {prefix}fheta ваш запит",
+        "notfound": "Нічого не знайдено за запитом {query}.",
+        "toolong": "Ваш запит занадто великий, будь ласка, скоротіть його до 168 символів.",
+        "added": "✔ Оцінку додано!",
+        "changed": "✔ Оцінку змінено!",
+        "deleted": "✔ Оцінку видалено!",
+        "prompt": "Введіть запит для пошуку.",
+        "hint": "Назва, команда, опис, автор.",
+        "retry": "Спробуйте інший запит.",
+        "query": "Запит",
+        "install": "Встановити",
+        "counter": "{idx}/{total}",
+        "code": "Код",
+        "success": "✔ Модуль успішно встановлено!",
+        "error": "✘ Помилка, можливо, модуль поламаний!",
+        "overwrite": "✘ Помилка, модуль намагався перезаписати вбудований модуль!",
+        "dependency": "✘ Помилка встановлення залежностей!",
+        "confirm": "✔ Модуль надіслано в Збережені, підтвердіть там його дозволи через {prefix}ld!",
+        "confirm_file": "Модулю {name} потрібне ваше підтвердження дозволів: {caps}.\nДайте відповідь на цей файл командою {prefix}ld, щоб перевірити та встановити його.",
+    },
+    "kz": {
+        "lang": "kz",
+        "author": "авторы",
+        "description": "Сипаттама",
+        "commands": "Командалар",
+        "placeholders": "Плейсхолдерлер",
+        "capabilities": "Рұқсаттар",
+        "morecommands": "...және тағы {remaining} команда.",
+        "moreplaceholders": "...және тағы {remaining} плейсхолдер.",
+        "list": "Барлық табылған модульдер:",
+        "search": "{query} сұрауы бойынша іздеу...",
+        "noquery": "Сіз іздеу сұрауын енгізбедіңіз, мысал: {prefix}fheta сіздің сұрауыңыз",
+        "notfound": "{query} сұрауы бойынша ештеңе табылмады.",
+        "toolong": "Сіздің сұрауыңыз тым үлкен, оны 168 таңбаға дейін қысқартыңыз.",
+        "added": "✔ Бағалау қосылды!",
+        "changed": "✔ Бағалау өзгертілді!",
+        "deleted": "✔ Бағалау жойылды!",
+        "prompt": "Іздеу үшін сұрау енгізіңіз.",
+        "hint": "Атауы, команда, сипаттама, автор.",
+        "retry": "Басқа сұрауды қолданып көріңіз.",
+        "query": "Сұрау",
+        "install": "Орнату",
+        "counter": "{idx}/{total}",
+        "code": "Код",
+        "success": "✔ Модуль сәтті орнатылды!",
+        "error": "✘ Қате, мүмкін модуль бұзылған!",
+        "overwrite": "✘ Қате, модуль кіріктірілген модульді қайта жазуға тырысты!",
+        "dependency": "✘ Тәуелділіктерді орнату қатесі!",
+        "confirm": "✔ Модуль Сақталғандарға жіберілді, сонда {prefix}ld арқылы рұқсаттарын растаңыз!",
+        "confirm_file": "{name} модуліне рұқсаттарын растау қажет: {caps}.\nТексеріп, орнату үшін осы файлға {prefix}ld командасымен жауап беріңіз.",
+    },
+    "uz": {
+        "lang": "uz",
+        "author": "muallif",
+        "description": "Tavsif",
+        "commands": "Buyruqlar",
+        "placeholders": "Pleysholderlar",
+        "capabilities": "Ruxsatlar",
+        "morecommands": "...va yana {remaining} ta buyruq.",
+        "moreplaceholders": "...va yana {remaining} ta pleysholder.",
+        "list": "Barcha topilgan modullar:",
+        "search": "{query} so'rovi bo'yicha qidiruv...",
+        "noquery": "Siz qidiruv so'rovini kiritmadingiz, misol: {prefix}fheta sizning so'rovingiz",
+        "notfound": "{query} so'rovi bo'yicha hech narsa topilmadi.",
+        "toolong": "Sizning so'rovingiz juda katta, iltimos uni 168 belgigacha qisqartiring.",
+        "added": "✔ Reyting qo'shildi!",
+        "changed": "✔ Reyting o'zgartirildi!",
+        "deleted": "✔ Reyting o'chirildi!",
+        "prompt": "Qidirish uchun so'rov kiriting.",
+        "hint": "Nomi, buyruq, tavsif, muallif.",
+        "retry": "Boshqa so'rovni sinab ko'ring.",
+        "query": "So'rov",
+        "install": "O'rnatish",
+        "counter": "{idx}/{total}",
+        "code": "Kod",
+        "success": "✔ Modul muvaffaqiyatli o'rnatildi!",
+        "error": "✘ Xatolik, ehtimol modul buzilgan!",
+        "overwrite": "✘ Xatolik, modul o'rnatilgan modulni qayta yozishga harakat qildi!",
+        "dependency": "✘ Bog'liqliklarni o'rnatish xatosi!",
+        "confirm": "✔ Modul Saqlanganlarga yuborildi, u yerda {prefix}ld orqali ruxsatlarini tasdiqlang!",
+        "confirm_file": "{name} moduli ruxsatlarini tasdiqlashingizni so'raydi: {caps}.\nTekshirish va o'rnatish uchun bu faylga {prefix}ld bilan javob bering.",
+    },
+    "fr": {
+        "lang": "fr",
+        "author": "par",
+        "description": "Description",
+        "commands": "Commandes",
+        "placeholders": "Espaces réservés",
+        "capabilities": "Autorisations",
+        "morecommands": "...et {remaining} commandes supplémentaires.",
+        "moreplaceholders": "...et {remaining} espaces réservés supplémentaires.",
+        "list": "Tous les modules trouvés:",
+        "search": "Recherche pour {query}...",
+        "noquery": "Vous n'avez pas entré de requête de recherche, exemple: {prefix}fheta votre requête",
+        "notfound": "Rien trouvé pour la requête {query}.",
+        "toolong": "Votre requête est trop longue, veuillez la réduire à 168 caractères.",
+        "added": "✔ Note ajoutée!",
+        "changed": "✔ Note modifiée!",
+        "deleted": "✔ Note supprimée!",
+        "prompt": "Entrez une requête pour rechercher.",
+        "hint": "Nom, commande, description, auteur.",
+        "retry": "Essayez une autre requête.",
+        "query": "Requête",
+        "install": "Installer",
+        "counter": "{idx}/{total}",
+        "code": "Code",
+        "success": "✔ Module installé avec succès!",
+        "error": "✘ Erreur, le module est peut-être cassé!",
+        "overwrite": "✘ Erreur, le module a tenté d'écraser le module intégré!",
+        "dependency": "✘ Erreur d'installation des dépendances!",
+        "confirm": "✔ Module envoyé dans Messages enregistrés, confirmez-y ses autorisations avec {prefix}ld !",
+        "confirm_file": "Le module {name} a besoin de votre accord pour ses autorisations : {caps}.\nRépondez à ce fichier avec {prefix}ld pour le vérifier et l'installer.",
+    },
+    "de": {
+        "lang": "de",
+        "author": "von",
+        "description": "Beschreibung",
+        "commands": "Befehle",
+        "placeholders": "Platzhalter",
+        "capabilities": "Berechtigungen",
+        "morecommands": "...und {remaining} weitere Befehle.",
+        "moreplaceholders": "...und {remaining} weitere Platzhalter.",
+        "list": "Alle gefundenen Module:",
+        "search": "Suche nach {query}...",
+        "noquery": "Sie haben keine Suchanfrage eingegeben, Beispiel: {prefix}fheta ihre anfrage",
+        "notfound": "Nichts gefunden für Anfrage {query}.",
+        "toolong": "Ihre Anfrage ist zu groß, bitte reduzieren Sie sie auf 168 Zeichen.",
+        "added": "✔ Bewertung hinzugefügt!",
+        "changed": "✔ Bewertung geändert!",
+        "deleted": "✔ Bewertung gelöscht!",
+        "prompt": "Geben Sie eine Suchanfrage ein.",
+        "hint": "Name, Befehl, Beschreibung, Autor.",
+        "retry": "Versuchen Sie eine andere Anfrage.",
+        "query": "Anfrage",
+        "install": "Installieren",
+        "counter": "{idx}/{total}",
+        "code": "Code",
+        "success": "✔ Modul erfolgreich installiert!",
+        "error": "✘ Fehler, vielleicht ist das Modul kaputt!",
+        "overwrite": "✘ Fehler, Modul hat versucht, das integrierte Modul zu überschreiben!",
+        "dependency": "✘ Fehler bei der Installation von Abhängigkeiten!",
+        "confirm": "✔ Modul an Gespeicherte Nachrichten gesendet, bestätige dort seine Berechtigungen mit {prefix}ld!",
+        "confirm_file": "Das Modul {name} braucht deine Zustimmung zu seinen Berechtigungen: {caps}.\nAntworte auf diese Datei mit {prefix}ld, um es zu prüfen und zu installieren.",
+    },
+    "jp": {
+        "lang": "jp",
+        "author": "作成者",
+        "description": "説明",
+        "commands": "コマンド",
+        "placeholders": "プレースホルダー",
+        "capabilities": "権限",
+        "morecommands": "...さらに {remaining} 個のコマンド。",
+        "moreplaceholders": "...さらに {remaining} 個のプレースホルダー。",
+        "list": "見つかったすべてのモジュール:",
+        "search": "{query}を検索中...",
+        "noquery": "検索クエリを入力していません、例: {prefix}fheta あなたのクエリ",
+        "notfound": "クエリ{query}で何も見つかりませんでした。",
+        "toolong": "クエリが大きすぎます。168文字に短縮してください。",
+        "added": "✔ 評価が追加されました！",
+        "changed": "✔ 評価が変更されました！",
+        "deleted": "✔ 評価が削除されました！",
+        "prompt": "検索するクエリを入力してください。",
+        "hint": "名前、コマンド、説明、作成者。",
+        "retry": "別のクエリを試してください。",
+        "query": "クエリ",
+        "install": "インストール",
+        "counter": "{idx}/{total}",
+        "code": "コード",
+        "success": "✔ モジュールが正常にインストールされました!",
+        "error": "✘ エラー, モジュールが壊れている可能性があります!",
+        "overwrite": "✘ エラー, モジュールが組み込みモジュールを上書きしようとしました!",
+        "dependency": "✘ 依存関係のインストールエラー!",
+        "confirm": "✔ モジュールを保存済みメッセージに送信しました。そこで {prefix}ld で権限を確認してください！",
+        "confirm_file": "モジュール {name} の権限の承認が必要です: {caps}。\nこのファイルに {prefix}ld で返信して確認し、インストールしてください。",
+    },
+}
+
+THEMES = {
+    "default": {
+        "search": '<tg-emoji emoji-id="5188217332748527444">🔍</tg-emoji>',
+        "error": '<tg-emoji emoji-id="5465665476971471368">❌</tg-emoji>',
+        "warn": '<tg-emoji emoji-id="5447644880824181073">⚠️</tg-emoji>',
+        "description": '<tg-emoji emoji-id="5334882760735598374">📝</tg-emoji>',
+        "command": '<tg-emoji emoji-id="5341715473882955310">⚙️</tg-emoji>',
+        "placeholder": '<tg-emoji emoji-id="5359785904535774578">🗒️</tg-emoji>',
+        "module": '<tg-emoji emoji-id="5454112830989025752">📦</tg-emoji>',
+        "capabilities": '<tg-emoji emoji-id="5226513232549664618">🧩</tg-emoji>',
+        "modules_list": '<tg-emoji emoji-id="5197269100878907942">📋</tg-emoji>',
+    },
+    "winter": {
+        "search": '<tg-emoji emoji-id="5431895003821513760">❄️</tg-emoji>',
+        "error": '<tg-emoji emoji-id="5404728536810398694">🧊</tg-emoji>',
+        "warn": '<tg-emoji emoji-id="5447644880824181073">🌨️</tg-emoji>',
+        "description": '<tg-emoji emoji-id="5255850496291259327">📜</tg-emoji>',
+        "command": '<tg-emoji emoji-id="5199503707938505333">🎅</tg-emoji>',
+        "placeholder": '<tg-emoji emoji-id="5204046675236109418">🗒️</tg-emoji>',
+        "module": '<tg-emoji emoji-id="5197708768091061888">🎁</tg-emoji>',
+        "capabilities": '<tg-emoji emoji-id="5226513232549664618">🧩</tg-emoji>',
+        "modules_list": '<tg-emoji emoji-id="5345935030143196497">🎄</tg-emoji>',
+    },
+    "summer": {
+        "search": '<tg-emoji emoji-id="5188217332748527444">🔍</tg-emoji>',
+        "error": '<tg-emoji emoji-id="5470049770997292425">🌡️</tg-emoji>',
+        "warn": '<tg-emoji emoji-id="5447644880824181073">⚠️</tg-emoji>',
+        "description": '<tg-emoji emoji-id="5361684086807076580">🍹</tg-emoji>',
+        "command": '<tg-emoji emoji-id="5442644589703866634">🏄</tg-emoji>',
+        "placeholder": '<tg-emoji emoji-id="5434121252874756456">🗒️</tg-emoji>',
+        "module": '<tg-emoji emoji-id="5433645645376264953">🏖️</tg-emoji>',
+        "capabilities": '<tg-emoji emoji-id="5226513232549664618">🧩</tg-emoji>',
+        "modules_list": '<tg-emoji emoji-id="5472178859300363509">🏖️</tg-emoji>',
+    },
+    "spring": {
+        "search": '<tg-emoji emoji-id="5449885771420934013">🌱</tg-emoji>',
+        "error": '<tg-emoji emoji-id="5208923808169222461">🥀</tg-emoji>',
+        "warn": '<tg-emoji emoji-id="5447644880824181073">⚠️</tg-emoji>',
+        "description": '<tg-emoji emoji-id="5251524493561569780">🍃</tg-emoji>',
+        "command": '<tg-emoji emoji-id="5449850741667668411">🦋</tg-emoji>',
+        "placeholder": '<tg-emoji emoji-id="5434121252874756456">🗒️</tg-emoji>',
+        "module": '<tg-emoji emoji-id="5440911110838425969">🌿</tg-emoji>',
+        "capabilities": '<tg-emoji emoji-id="5226513232549664618">🧩</tg-emoji>',
+        "modules_list": '<tg-emoji emoji-id="5440748683765227563">🌺</tg-emoji>',
+    },
+    "autumn": {
+        "search": '<tg-emoji emoji-id="5253944419870062295">🍂</tg-emoji>',
+        "error": '<tg-emoji emoji-id="5281026503658728615">🍁</tg-emoji>',
+        "warn": '<tg-emoji emoji-id="5447644880824181073">⚠️</tg-emoji>',
+        "description": '<tg-emoji emoji-id="5406631276042002796">📜</tg-emoji>',
+        "command": '<tg-emoji emoji-id="5212963577098417551">🍂</tg-emoji>',
+        "placeholder": '<tg-emoji emoji-id="5363965354391388799">🗒️</tg-emoji>',
+        "module": '<tg-emoji emoji-id="5249157915041865558">🍄</tg-emoji>',
+        "capabilities": '<tg-emoji emoji-id="5226513232549664618">🧩</tg-emoji>',
+        "modules_list": '<tg-emoji emoji-id="5305495722618010655">🍂</tg-emoji>',
+    },
+}
+
+MEMORY = {"settings": None, "cache": {}}
+
+
+def state_get(key, default=None):
+    try:
+        value = cap("state", {"op": "get", "key": key})
+    except Exception:
+        return default
+    return default if value is None else value
+
+
+def state_set(key, value):
+    try:
+        cap("state", {"op": "set", "key": key, "value": value})
+    except Exception:
+        pass
+
+
+def settings():
+    if MEMORY["settings"] is None:
+        stored = state_get("settings", {})
+        MEMORY["settings"] = stored if isinstance(stored, dict) else {}
+    return MEMORY["settings"]
+
+
+def save_settings(**values):
+    current = settings()
+    if all(current.get(key) == value for key, value in values.items()):
+        return current
+    current.update(values)
+    state_set("settings", current)
+    return current
+
+
+def remember(ctx):
+    config = dict(DEFAULTS)
+    for key, value in (getattr(ctx, "config", None) or {}).items():
+        if key in DEFAULTS and value is not None:
+            config[key] = value
+    language = str(getattr(getattr(ctx, "i18n", None), "language", "") or settings().get("language") or "en")
+    return save_settings(language=language, config=config, prefix=str(ctx.prefix or "."))
+
+
+def lang():
+    code = str(settings().get("language") or "en").lower().replace("_", "-").split("-")[0]
+    code = LANGUAGES.get(code, code)
+    return code if code in STRINGS else "en"
+
+
+def tr(key, **values):
+    text = STRINGS[lang()].get(key) or STRINGS["en"][key]
+    return text.format(**values) if values else text
+
+
+def conf(key):
+    return (settings().get("config") or {}).get(key, DEFAULTS[key])
+
+
+def prefix():
+    return str(settings().get("prefix") or ".")
+
+
+def emoji(key):
+    return THEMES.get(conf("theme"), THEMES["default"])[key]
+
+
+def esc(value):
+    return html.escape(str(value), quote=False)
+
+
+def visible(text):
+    return len(re.sub(r"<[^>]+>", "", text))
+
+
+def unwrap(value):
+    if isinstance(value, dict) and set(value) == {"result"}:
+        return value["result"]
+    return value
+
+
+def request(method, path, params=None, payload=None, token=None):
+    options = {"method": method, "timeout": 10, "headers": {"Authorization": token} if token else {}}
+    if params:
+        options["params"] = {key: value for key, value in params.items() if value is not None}
+    if payload is not None:
+        options["json"] = payload
+    try:
+        response = net(f"{API}/{path}", **options)
+    except Exception:
+        return None, None
+    status = response.get("status")
+    try:
+        return status, json.loads(response.get("body") or "null")
+    except ValueError:
+        return status, None
+
+
+def self_id():
+    uid = settings().get("user_id")
+    if uid:
+        return uid
+    try:
+        data = unwrap(mt("users.getUsers", id=[{"_": "inputUserSelf"}]))
+    except Exception:
+        return None
+    users = data if isinstance(data, list) else (data or {}).get("users", []) if isinstance(data, dict) else []
+    uid = users[0].get("id") if users and isinstance(users[0], dict) else None
+    if uid:
+        save_settings(user_id=uid)
+    return uid
+
+
+def sent_id(result):
+    result = unwrap(result)
+    if isinstance(result, dict):
+        if isinstance(result.get("id"), int):
+            return result["id"]
+        for update in result.get("updates", []) or []:
+            if isinstance(update, dict):
+                if update.get("_") == "updateMessageID" and isinstance(update.get("id"), int):
+                    return update["id"]
+                message = update.get("message")
+                if isinstance(message, dict) and isinstance(message.get("id"), int):
+                    return message["id"]
+    return 0
+
+
+def history(limit=5):
+    try:
+        data = unwrap(mt("messages.getHistory", peer=BOT_USERNAME, limit=limit, offset_id=0, offset_date=0, add_offset=0, max_id=0, min_id=0, hash=0))
+    except Exception:
+        return []
+    return [m for m in (data or {}).get("messages", []) if isinstance(m, dict)] if isinstance(data, dict) else []
+
+
+def delete_messages(ids):
+    ids = [i for i in ids if isinstance(i, int) and i > 0]
+    if ids:
+        try:
+            mt("messages.deleteMessages", id=ids, revoke=True)
+        except Exception:
+            pass
+
+
+async def obtain_token():
+    try:
+        mt("contacts.unblock", id=BOT_USERNAME)
+    except Exception:
+        pass
+    try:
+        start = sent_id(mt("messages.sendMessage", peer=BOT_USERNAME, message="/token", random_id=random.getrandbits(63)))
+    except Exception:
+        return None
+    deadline = time.monotonic() + 8
+    while time.monotonic() < deadline:
+        for message in history():
+            text = str(message.get("message") or "").strip()
+            if message.get("id", 0) > start and not message.get("out") and text:
+                save_settings(token=text)
+                return text
+        await asyncio.sleep(0.5)
+    return None
+
+
+async def token(refresh=False):
+    current = settings().get("token")
+    if current and not refresh:
+        return current
+    return await obtain_token()
+
+
+async def check_token():
+    current = settings().get("token")
+    uid = self_id()
+    if current and uid:
+        status, valid = request("GET", "validatetkn", {"user_id": str(uid)}, token=current)
+        if status == 200 and valid is True:
+            return current
+    return await obtain_token()
+
+
+def prepare():
+    try:
+        mt("contacts.unblock", id=BOT_USERNAME)
+    except Exception:
+        pass
+    try:
+        mt("account.updateNotifySettings", peer={"_": "inputNotifyPeer", "peer": BOT_USERNAME}, settings={"_": "inputPeerNotifySettings", "mute_until": 2147483647})
+    except Exception:
+        pass
+    try:
+        mt("folders.editPeerFolders", folder_peers=[{"_": "inputFolderPeer", "peer": BOT_USERNAME, "folder_id": 1}])
+    except Exception:
+        pass
+
+
+async def sync_language():
+    current = lang()
+    if settings().get("synced") == current:
+        return
+    uid = self_id()
+    key = await token()
+    if not uid or not key:
+        return
+    status, _ = request("POST", "dataset", {"user_id": uid, "lang": current}, token=key)
+    if status == 200:
+        save_settings(synced=current)
+
+
+async def search(query, inline):
+    uid = self_id()
+    key = await token()
+    params = {
+        "query": query,
+        "inline": "true" if inline else "false",
+        "token": key,
+        "user_id": uid,
+        "ood": "true" if conf("only_official_developers") else "false",
+        "platform": "hotaru",
+    }
+    status, data = request("GET", "search", params, token=key)
+    if status == 401:
+        key = await token(refresh=True)
+        params["token"] = key
+        status, data = request("GET", "search", params, token=key)
+    return data if status == 200 and isinstance(data, list) else []
+
+
+def cache_put(query, modules):
+    qid = uuid.uuid4().hex[:8]
+    MEMORY["cache"][qid] = {"query": query, "mods": modules}
+    while len(MEMORY["cache"]) > 10:
+        MEMORY["cache"].pop(next(iter(MEMORY["cache"])))
+    state_set("cache", MEMORY["cache"])
+    return qid
+
+
+def cache_get(qid):
+    entry = MEMORY["cache"].get(qid)
+    if entry is None:
+        stored = state_get("cache", {})
+        if isinstance(stored, dict):
+            MEMORY["cache"].update(stored)
+        entry = MEMORY["cache"].get(qid)
+    return entry
+
+
+def cache_save():
+    state_set("cache", MEMORY["cache"])
+
+
+def pick(value):
+    if isinstance(value, dict):
+        return value.get(lang()) or value.get("doc") or next(iter(value.values()), "")
+    return value or ""
+
+
+def module_url(data):
+    link = str(data.get("install", ""))
+    decoded = unquote(link.replace("%20", "___SPACE___")).replace("___SPACE___", "%20")
+    return decoded[4:] if decoded.startswith("dlm ") else decoded
+
+
+def render(items, kind, limit):
+    if not items:
+        return ""
+    lines = []
+    title = "commands" if kind == "cmd" else "placeholders"
+    more = "morecommands" if kind == "cmd" else "moreplaceholders"
+    for index, item in enumerate(items):
+        description = pick(item.get("description", {}))
+        description = esc(description).split("\n")[0] if description else ""
+        name = esc(item.get("name", ""))
+        if item.get("inline"):
+            line = f"<code>@bot {name}</code> {description}"
+        elif kind == "ph":
+            line = f"<code>{{{name}}}</code> {description}"
+        else:
+            line = f"<code>{esc(prefix())}{name}</code> {description}"
+        line = line.strip()
+        extra = f"<i>{tr(more, remaining=len(items) - index)}</i>"
+        if visible("\n".join(lines + [line, extra])) > limit and index > 0:
+            lines.append(extra)
+            break
+        lines.append(line)
+    return f"\n\n{emoji('command' if kind == 'cmd' else 'placeholder')} <b>{tr(title)}:</b>\n<blockquote expandable>{chr(10).join(lines)}</blockquote>"
+
+
+def card(data):
+    limit = 3700
+    version = data.get("version") or "?.?.?"
+    text = f"{emoji('module')} <code>{esc(data.get('name', ''))}</code> <b>{tr('author')}</b> <code>{esc(data.get('author', '???'))}</code>"
+    if version != "?.?.?":
+        text += f" (<code>v{esc(version)}</code>)"
+    description = pick(data.get("description"))
+    if description:
+        text += f"\n\n{emoji('description')} <b>{tr('description')}:</b>\n<blockquote expandable>{esc(description)}</blockquote>"
+    capabilities = data.get("capabilities") or []
+    if capabilities:
+        text += f"\n\n{emoji('capabilities')} <b>{tr('capabilities')}:</b>\n<blockquote expandable>" + ", ".join(f"<code>{esc(item)}</code>" for item in capabilities) + "</blockquote>"
+    text += render(data.get("commands", []), "cmd", limit - visible(text))
+    text += render(data.get("placeholders", []), "ph", limit - visible(text))
+    banner = data.get("banner")
+    if banner:
+        text = f'<a href="{html.escape(str(banner), quote=True)}">&#8204;</a>' + text
+    return text
+
+
+def button(text, action, payload):
+    return {"text": text, "action_id": action, "payload": payload}
+
+
+def card_buttons(qid, index, modules, query):
+    data = modules[index]
+    rows = []
+    if query:
+        rows.append([
+            {"text": tr("query"), "copy_text": query[:256]},
+            button(tr("install"), "cb_install", {"q": qid, "i": index}),
+            {"text": tr("code"), "url": module_url(data)},
+        ])
+    rate = [
+        button(f"↑ {data.get('likes', 0)}", "cb_rate", {"q": qid, "i": index, "a": "like"}),
+        button(f"↓ {data.get('dislikes', 0)}", "cb_rate", {"q": qid, "i": index, "a": "dislike"}),
+    ]
+    if len(modules) > 1:
+        rate.insert(1, button(tr("counter", idx=index + 1, total=len(modules)), "cb_list", {"q": qid, "i": index, "p": index // 8}))
+    rows.append(rate)
+    if len(modules) > 1:
+        navigation = []
+        if index > 0:
+            navigation.append(button("←", "cb_nav", {"q": qid, "i": index - 1}))
+        if index < len(modules) - 1:
+            navigation.append(button("→", "cb_nav", {"q": qid, "i": index + 1}))
+        if navigation:
+            rows.append(navigation)
+    return rows
+
+
+def list_buttons(qid, modules, page, current):
+    rows = []
+    start = page * 8
+    for index in range(start, min(start + 8, len(modules))):
+        item = modules[index]
+        rows.append([button(f"{index + 1}. {item.get('name', 'Unknown')} by {item.get('author', '???')}", "cb_nav", {"q": qid, "i": index})])
+    navigation = []
+    if page > 0:
+        navigation.append(button("←", "cb_list", {"q": qid, "i": current, "p": page - 1}))
+    if page < (len(modules) + 7) // 8 - 1:
+        navigation.append(button("→", "cb_list", {"q": qid, "i": current, "p": page + 1}))
+    if navigation:
+        rows.append(navigation)
+    rows.append([button("✘", "cb_nav", {"q": qid, "i": current})])
+    return rows
+
+
+def upload(name, source):
+    raw = source.encode("utf-8")
+    file_id = random.getrandbits(63)
+    parts = max(1, (len(raw) + PART_SIZE - 1) // PART_SIZE)
+    for part in range(parts):
+        mt("upload.saveFilePart", file_id=file_id, file_part=part, bytes=raw[part * PART_SIZE:(part + 1) * PART_SIZE])
+    return {
+        "_": "inputMediaUploadedDocument",
+        "file": {"_": "inputFile", "id": file_id, "parts": parts, "name": name, "md5_checksum": ""},
+        "mime_type": "text/plain",
+        "force_file": True,
+        "attributes": [{"_": "documentAttributeFilename", "file_name": name}],
+    }
+
+
+def send_for_approval(module_id, source, capabilities):
+    caption = tr("confirm_file", name=f"<code>{esc(module_id)}</code>", caps=", ".join(f"<code>{esc(item)}</code>" for item in capabilities) or "-", prefix=esc(prefix()))
+    mt("messages.sendMedia", peer="me", media=upload(f"{module_id}.hmod", source), message=caption, parse_mode="html", random_id=random.getrandbits(63))
+
+
+def is_hotaru_link(url):
+    target = urlparse(str(url or "").strip())
+    return f"{target.scheme}://{target.netloc}{target.path}".startswith(MODULE_URL) and target.path.endswith(".hmod")
+
+
+def install(url):
+    if not is_hotaru_link(url):
+        return "error"
+    try:
+        response = net(url, timeout=20, binary=True)
+    except Exception:
+        return "error"
+    if response.get("status") != 200 or response.get("truncated"):
+        return "error"
+    try:
+        source = base64.b64decode(response.get("body") or "").decode("utf-8")
+        tree = ast.parse(source)
+        head = tree.body[0] if tree.body else None
+        if not isinstance(head, ast.Assign) or not any(isinstance(item, ast.Name) and item.id == "HOTARU" for item in head.targets):
+            return "error"
+        manifest = ast.literal_eval(head.value)
+    except Exception:
+        return "error"
+    try:
+        result = cap("modules", {"op": "load", "text": source})
+    except PermissionError as exc:
+        return "overwrite" if "protect" in str(exc).lower() else "error"
+    except Exception as exc:
+        text = str(exc).lower()
+        if any(word in text for word in ("requir", "depend", "package")):
+            return "dependency"
+        return "error"
+    action = result.get("action") if isinstance(result, dict) else None
+    if action == "confirm":
+        try:
+            send_for_approval(str(manifest.get("id", "module")), source, result.get("capabilities") or manifest.get("capabilities") or [])
+        except Exception:
+            return "error"
+        return "confirm"
+    if action in ("loaded", "updated", "reloaded", "installed", "activated"):
+        return "success"
+    text = str(action or "").lower()
+    if any(word in text for word in ("requir", "depend", "package")):
+        return "dependency"
+    return "error"
+
+
+def install_text(status):
+    return tr(status, prefix=prefix()) if status == "confirm" else tr(status)
+
+
+async def rise(ctx):
+    remember(ctx)
+    prepare()
+
+
+async def task_sync(ctx):
+    remember(ctx)
+    if not settings().get("checked"):
+        if await check_token():
+            save_settings(checked=True)
+    await sync_language()
+
+
+async def command_fheta(ctx, invocation):
+    remember(ctx)
+    query = str(invocation.raw_args or "").strip()
+    if not query:
+        await ctx.respond(f"{emoji('error')} <b>{tr('noquery', prefix=f'<code>{esc(prefix())}')}</code></b>")
+        return
+    if len(query) > 168:
+        await ctx.respond(f"{emoji('warn')} <b>{tr('toolong')}</b>")
+        return
+    if is_hotaru_link(query) and " " not in query:
+        await ctx.respond(f"<b>{esc(install_text(install(query)))}</b>")
+        return
+    await ctx.respond(f"{emoji('search')} <b>{tr('search', query=f'<code>{esc(query)}</code>')}</b>")
+    await sync_language()
+    modules = (await search(query, False))[:50]
+    if not modules:
+        await ctx.respond(f"{emoji('error')} <b>{tr('notfound', query=f'<code>{esc(query)}</code>')}</b>")
+        return
+    qid = cache_put(query, modules)
+    await ctx.respond(card(modules[0]), buttons=card_buttons(qid, 0, modules, query))
+
+
+async def inline_fheta(query, args):
+    text = str(getattr(query, "query", "") or "")
+    parts = text.split(maxsplit=1)
+    search_query = parts[1].strip() if len(parts) > 1 else " ".join(args).strip()
+
+    def notice(title, description, message, thumb):
+        return [{
+            "type": "article",
+            "id": f"fh_{uuid.uuid4().hex[:8]}",
+            "title": title,
+            "description": description,
+            "thumb_url": ASSETS + thumb,
+            "message": message,
+            "parse_mode": "HTML",
+            "input_message_content": {"message_text": message, "parse_mode": "HTML"},
+        }]
+
+    if not search_query:
+        return notice(tr("prompt"), tr("hint"), f"{emoji('error')} <b>{tr('noquery', prefix=f'<code>@bot ')}</code></b>", "magnifying_glass.png")
+    if len(search_query) > 168:
+        return notice(tr("toolong"), tr("retry"), f"{emoji('warn')} <b>{tr('toolong')}</b>", "try_other_query.png")
+    modules = (await search(search_query, True))[:50]
+    if not modules:
+        return notice(tr("retry"), tr("hint"), f"{emoji('error')} <b>{tr('notfound', query=f'<code>{esc(search_query)}</code>')}</b>", "try_other_query.png")
+    qid = uuid.uuid4().hex[:8]
+    results = []
+    for index, data in enumerate(modules):
+        description = str(pick(data.get("description", "")))
+        message = card(data)
+        url = module_url(data)
+        results.append({
+            "type": "article",
+            "id": f"fh_{qid}_{index}",
+            "title": str(data.get("name", "")),
+            "description": description[:250] + ("..." if len(description) > 250 else ""),
+            "thumb_url": data.get("pic") or ASSETS + "empty_pic.png",
+            "message": message,
+            "parse_mode": "HTML",
+            "input_message_content": {"message_text": message, "parse_mode": "HTML"},
+            "reply_markup": [[
+                {"text": tr("install"), "copy_text": f"{prefix()}fheta {url}"[:256]},
+                {"text": tr("code"), "url": url},
+            ]],
+        })
+    return results
+
+
+async def answer(cb, text="", alert=False):
+    try:
+        await cb.respond(text, alert=alert)
+    except Exception:
+        pass
+
+
+def lookup(payload):
+    if not isinstance(payload, dict):
+        return None, None, None
+    entry = cache_get(str(payload.get("q", "")))
+    if not entry:
+        return None, None, None
+    modules = entry.get("mods") or []
+    index = payload.get("i", 0)
+    if not isinstance(index, int) or not 0 <= index < len(modules):
+        return None, None, None
+    return entry, modules, index
+
+
+def refresh_prefix(cb):
+    value = getattr(cb, "_data", {}).get("prefix")
+    if value:
+        save_settings(prefix=str(value))
+
+
+async def cb_nav(cb, payload):
+    refresh_prefix(cb)
+    entry, modules, index = lookup(payload)
+    await answer(cb)
+    if entry is None:
+        return
+    await cb.edit(card(modules[index]), reply_markup=card_buttons(payload["q"], index, modules, entry.get("query", "")))
+
+
+async def cb_list(cb, payload):
+    refresh_prefix(cb)
+    entry, modules, index = lookup(payload)
+    await answer(cb)
+    if entry is None:
+        return
+    page = payload.get("p", 0) if isinstance(payload.get("p", 0), int) else 0
+    await cb.edit(f"{emoji('modules_list')} <b>{tr('list')}</b>", reply_markup=list_buttons(payload["q"], modules, page, index))
+
+
+async def cb_rate(cb, payload):
+    refresh_prefix(cb)
+    entry, modules, index = lookup(payload)
+    if entry is None or payload.get("a") not in ("like", "dislike"):
+        await answer(cb)
+        return
+    data = modules[index]
+    link = str(data.get("install", ""))
+    key = await token()
+    status, response = request("POST", f"rate/{self_id()}/{quote(link, safe='/:%')}/{payload['a']}", token=key)
+    _, stats = request("POST", "get", payload=[unquote(link)])
+    if isinstance(stats, dict):
+        data.update(stats.get(unquote(link), {"likes": data.get("likes", 0), "dislikes": data.get("dislikes", 0)}))
+        cache_save()
+    text = ""
+    if isinstance(response, dict):
+        text = {"added": tr("added"), "changed": tr("changed"), "removed": tr("deleted")}.get(response.get("status"), "")
+    await answer(cb, text, bool(text))
+    await cb.edit(card(data), reply_markup=card_buttons(payload["q"], index, modules, entry.get("query", "")))
+
+
+async def cb_install(cb, payload):
+    refresh_prefix(cb)
+    entry, modules, index = lookup(payload)
+    if entry is None:
+        await answer(cb)
+        return
+    await answer(cb, install_text(install(module_url(modules[index]))), True)
+
+
+async def watcher_install(ctx, invocation):
+    if ctx.chat_id != BOT_ID:
+        return
+    remember(ctx)
+    if not conf("install_via_fheta"):
+        return
+    message = await ctx.msg(ctx.chat_id, ctx.message_id)
+    if not isinstance(message, dict) or message.get("out"):
+        return
+    url = str(message.get("message") or "").strip()
+    if not is_hotaru_link(url):
+        return
+    status = install(url)
+    reply = {"success": "✅", "confirm": "🔐", "dependency": "📋", "overwrite": "😨"}.get(status, "❌")
+    try:
+        sent = sent_id(mt("messages.sendMessage", peer=BOT_USERNAME, message=reply, random_id=random.getrandbits(63)))
+    except Exception:
+        sent = 0
+    await asyncio.sleep(1)
+    delete_messages([sent, ctx.message_id])
